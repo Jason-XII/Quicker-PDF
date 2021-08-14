@@ -1,18 +1,17 @@
-from tkinter import ttk
 from tkinter import *
-from tkinter.filedialog import askopenfilenames, askopenfilename
+from tkinter.ttk import *
+from tkinter.filedialog import askopenfilenames, askopenfilename, asksaveasfilename
 from ttkthemes import ThemedTk 
 from pdf_machine import *
-from PIL import Image, ImageTk
 from os.path import split
 	
-root = ThemedTk(theme='adapta')
-tabs = ttk.Notebook(root, padding=(10, 10, 10, 20))
+root = Tk()
+tabs = Notebook(root, padding=(10, 10, 10, 20))
 merge_files_list = []
-
+add_file_icon = None
 # build the merge widget
 def build_merge_widget():
-
+    global add_file_icon
     def merge_add_file_on_click():
         filenames = askopenfilenames(filetypes=[("PDF文件", "*.pdf")])
         if not filenames:
@@ -53,37 +52,40 @@ def build_merge_widget():
             pdf_listview.insert(END, split(fn)[-1])
 
     def merge():
-        pass
+        out_filename = asksaveasfilename(filetypes=[("PDF文件", "*.pdf")])
+        if not out_filename:
+            return
+        machine = PDFMergeMachine(merge_files_list)
+        machine.merge(out_filename + '.pdf')
 
-    tab_merge = ttk.Frame(root)
-    file_path = ttk.Entry(tab_merge)
+    tab_merge = Frame(root)
+    file_path = Entry(tab_merge)
     file_path.insert(0, "这里会显示文件路径")
     file_path.grid(row=0, column=0, sticky=NSEW)
     tab_merge.columnconfigure(index=0, weight=1)
-    
-    btn_add_file = ttk.Button(tab_merge, command=merge_add_file_on_click, text="添加PDF")
+    add_file_icon = PhotoImage(file="打开文件.png")
+    add_file_icon = add_file_icon.subsample(2, 2)
+    btn_add_file = Button(master=tab_merge, command=merge_add_file_on_click, text="添加PDF", image=add_file_icon, compound="left")
     btn_add_file.grid(row=0, column=1, sticky=NSEW)
-    add_file_icon = PhotoImage(file="打开文件.gif")
-    btn_add_file.config(image=add_file_icon)
     tab_merge.columnconfigure(index=1, weight=0)
     pdf_listview = Listbox(tab_merge)
     pdf_listview.grid(row=1, column=0, columnspan=2, sticky=NSEW)
-    btn_delete_file = ttk.Button(tab_merge, text="删除选中项目", command=delete_one_item)
+    btn_delete_file = Button(tab_merge, text="删除选中项目", command=delete_one_item)
     btn_delete_file.grid(row=2, column=0, sticky=NSEW)
-    btn_clear = ttk.Button(tab_merge, text="清空列表", command=clear_list)
+    btn_clear = Button(tab_merge, text="清空列表", command=clear_list)
     btn_clear.grid(row=2, column=1, sticky=NSEW)
-    btn_move_up = ttk.Button(tab_merge, text="上移项目", command=move_item_up)
+    btn_move_up = Button(tab_merge, text="上移项目", command=move_item_up)
     btn_move_up.grid(row=3, column=0, sticky=NSEW)
-    btn_move_down = ttk.Button(tab_merge, text="下移项目", command=move_item_down)
+    btn_move_down = Button(tab_merge, text="下移项目", command=move_item_down)
     btn_move_down.grid(row=3, column=1, sticky=NSEW)
-    btn_merge = ttk.Button(tab_merge, command=merge, text="合并PDF")
+    btn_merge = Button(tab_merge, command=merge, text="合并PDF")
     btn_merge.grid(row=4, column=0, columnspan=2, sticky=NSEW)
     return tab_merge
 
 
 tab_merge = build_merge_widget()
-tab_extract = ttk.Frame(root)
-tab_delete = ttk.Frame(root)
+tab_extract = Frame(root)
+tab_delete = Frame(root)
 tabs.add(tab_merge, text="合并PDF")
 tabs.add(tab_extract, text="抽取PDF页码")
 tabs.add(tab_delete, text="删除PDF页码")
