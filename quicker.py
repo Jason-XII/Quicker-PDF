@@ -5,13 +5,23 @@ from ttkthemes import ThemedTk
 from pdf_machine import *
 from os.path import split
 	
-root = Tk()
+root = ThemedTk(theme='arc')
 tabs = Notebook(root, padding=(10, 10, 10, 20))
+
 merge_files_list = []
-add_file_icon = None
+extract_file_data = []
+
+add_file_icon = PhotoImage(file="打开文件.png").subsample(2, 2)
+delete_item_icon = PhotoImage(file="删除一项.png").subsample(2, 2)
+clear_items_icon = PhotoImage(file="删除.png").subsample(2, 2)
+move_item_up_icon = PhotoImage(file="up.png").subsample(2, 2)
+move_item_down_icon = PhotoImage(file='down.png').subsample(2, 2)
+merge_icon = PhotoImage(file='merge.png').subsample(20, 20)
+add_to_list_icon = PhotoImage(file='添加.png').subsample(2, 2)
+download_icon = PhotoImage(file='下载文件.png').subsample(2, 2)
+
 # build the merge widget
 def build_merge_widget():
-    global add_file_icon
     def merge_add_file_on_click():
         filenames = askopenfilenames(filetypes=[("PDF文件", "*.pdf")])
         if not filenames:
@@ -19,8 +29,10 @@ def build_merge_widget():
         for fn in filenames:
         	pdf_listview.insert(END, split(fn)[-1])
         	merge_files_list.append(fn)
+        file_path['state'] = 'active'
         file_path.delete(0, END)
         file_path.insert(0, filenames[-1])
+        file_path['state'] = 'readonly'
 
     def delete_one_item():
         merge_files_list.pop(pdf_listview.curselection()[0])
@@ -56,35 +68,111 @@ def build_merge_widget():
         if not out_filename:
             return
         machine = PDFMergeMachine(merge_files_list)
-        machine.merge(out_filename + '.pdf')
+        machine.merge(out_filename + ".pdf")
 
     tab_merge = Frame(root)
     file_path = Entry(tab_merge)
     file_path.insert(0, "这里会显示文件路径")
+    file_path['state'] = 'readonly'
     file_path.grid(row=0, column=0, sticky=NSEW)
     tab_merge.columnconfigure(index=0, weight=1)
-    add_file_icon = PhotoImage(file="打开文件.png")
-    add_file_icon = add_file_icon.subsample(2, 2)
     btn_add_file = Button(master=tab_merge, command=merge_add_file_on_click, text="添加PDF", image=add_file_icon, compound="left")
     btn_add_file.grid(row=0, column=1, sticky=NSEW)
     tab_merge.columnconfigure(index=1, weight=0)
     pdf_listview = Listbox(tab_merge)
     pdf_listview.grid(row=1, column=0, columnspan=2, sticky=NSEW)
-    btn_delete_file = Button(tab_merge, text="删除选中项目", command=delete_one_item)
+    btn_delete_file = Button(tab_merge, text="删除选中项目", command=delete_one_item, image=delete_item_icon, compound="left")
     btn_delete_file.grid(row=2, column=0, sticky=NSEW)
-    btn_clear = Button(tab_merge, text="清空列表", command=clear_list)
+    btn_clear = Button(tab_merge, text="清空列表", command=clear_list, image=clear_items_icon, compound="left")
     btn_clear.grid(row=2, column=1, sticky=NSEW)
-    btn_move_up = Button(tab_merge, text="上移项目", command=move_item_up)
+    btn_move_up = Button(tab_merge, text="上移项目", command=move_item_up, image=move_item_up_icon, compound="left")
     btn_move_up.grid(row=3, column=0, sticky=NSEW)
-    btn_move_down = Button(tab_merge, text="下移项目", command=move_item_down)
+    btn_move_down = Button(tab_merge, text="下移项目", command=move_item_down, image=move_item_down_icon, compound="left")
     btn_move_down.grid(row=3, column=1, sticky=NSEW)
-    btn_merge = Button(tab_merge, command=merge, text="合并PDF")
+    btn_merge = Button(tab_merge, command=merge, text="合并PDF", image=merge_icon, compound='left')
     btn_merge.grid(row=4, column=0, columnspan=2, sticky=NSEW)
     return tab_merge
 
 
+def build_extract_widget():
+    def extract_add_file_on_click():
+        filename = askopenfilename(filetypes=[("PDF文件", "*.pdf")])
+        if not filename:
+            return
+        pdf_listview.insert(END, split(filename)[-1])
+        file_path['state'] = 'active'
+        file_path.delete(0, END)
+        file_path.insert(0, filenames[-1])
+        file_path['state'] = 'readonly'
+
+    def add_to_list():
+        start = spin_start_page.get()
+        end = spin_end_page.get()
+        print(start, end)
+
+    def delete_one_item():
+        merge_files_list.pop(pdf_listview.curselection()[0])
+        pdf_listview.delete(ANCHOR)
+
+    def clear_list():
+        merge_files_list = []
+        pdf_listview.delete(0, END)
+
+    def move_item_up():
+        index = pdf_listview.curselection()[0]
+        if index == 0:
+            return
+        merge_files_list[index-1], merge_files_list[index] = merge_files_list[index], merge_files_list[index-1]
+        refresh_list()
+        pdf_listview.selection_set(index-1)
+
+    def move_item_down():
+        index = pdf_listview.curselection()[0]
+        if index == len(merge_files_list)-1:
+            return
+        merge_files_list[index+1], merge_files_list[index] = merge_files_list[index], merge_files_list[index+1]
+        refresh_list()
+        pdf_listview.selection_set(index+1)
+
+    def refresh_list():
+        pdf_listview.delete(0, END)
+        for fn in merge_files_list:
+            pdf_listview.insert(END, split(fn)[-1])
+
+    def extract():
+        pass
+
+    tab_extract = Frame(root)
+    file_path = Entry(tab_extract)
+    file_path.insert(0, "这里会显示文件路径")
+    file_path['state'] = 'readonly'
+    file_path.grid(row=0, column=0, sticky=NSEW, columnspan=2)
+    btn_add_file = Button(master=tab_extract, command=extract_add_file_on_click, text="添加PDF", image=add_file_icon, compound="left")
+    btn_add_file.grid(row=0, column=2, sticky=NSEW)
+    spin_start_page = Spinbox(tab_extract, from_=1)
+    spin_start_page.grid(row=1, column=0, sticky=NSEW)
+    spin_end_page = Spinbox(tab_extract, from_=1)
+    spin_end_page.grid(row=1, column=1, sticky=NSEW)
+    btn_add_to_list = Button(tab_extract, text='添加项目至列表', command=add_to_list, image=add_to_list_icon, compound='left')
+    btn_add_to_list.grid(row=1, column=2, sticky=NSEW)
+    pdf_listview = Listbox(tab_extract)
+    pdf_listview.grid(row=2, column=0, columnspan=3, sticky=NSEW)
+    btn_delete_file = Button(tab_extract, text="删除选中项目", command=delete_one_item, image=delete_item_icon, compound="left")
+    btn_delete_file.grid(row=3, column=0, sticky=NSEW)
+    btn_clear = Button(tab_extract, text="清空列表", command=clear_list, image=clear_items_icon, compound="left")
+    btn_clear.grid(row=3, column=1, sticky=NSEW)
+    btn_move_up = Button(tab_extract, text="上移项目", command=move_item_up, image=move_item_up_icon, compound="left")
+    btn_move_up.grid(row=4, column=0, sticky=NSEW)
+    btn_move_down = Button(tab_extract, text="下移项目", command=move_item_down, image=move_item_down_icon, compound="left")
+    btn_move_down.grid(row=4, column=1, sticky=NSEW)
+    btn_extract = Button(tab_extract, command=extract, text="合并PDF", image=download_icon, compound='left')
+    btn_extract.grid(row=5, column=0, columnspan=2, sticky=NSEW)
+    tab_extract.columnconfigure(index=0, weight=1)
+    tab_extract.columnconfigure(index=1, weight=0)
+    return tab_extract
+
 tab_merge = build_merge_widget()
-tab_extract = Frame(root)
+tab_extract = build_extract_widget()
 tab_delete = Frame(root)
 tabs.add(tab_merge, text="合并PDF")
 tabs.add(tab_extract, text="抽取PDF页码")
